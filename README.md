@@ -38,7 +38,10 @@ the property.
 pip install "protocol-bench @ git+https://github.com/nickharris808/protocol-bench.git"
 ```
 
-> `pip install protocol-bench` will work once the PyPI release lands. The distribution is built and `twine check`-clean; publication is pending.
+> `pip install protocol-bench` does not work yet — the package is not on PyPI. Install from GitHub
+> as shown above; that pulls in `minicheck` automatically. `python build_pypi.py` produces a
+> PyPI-uploadable artifact for when both packages are published (PyPI rejects the direct dependency
+> reference this package uses to stay installable without an index).
 
 This pulls in [`minicheck`](https://github.com/nickharris808/minicheck), the model checker the task models are written against.
 
