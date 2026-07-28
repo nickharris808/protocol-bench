@@ -18,7 +18,14 @@ classifiers = [
   "Topic :: Security",
   "Topic :: Software Development :: Testing",
 ]
-dependencies = ["minicheck>=0.2.0"]
+# minicheck is not on PyPI yet, so a bare `minicheck>=0.2.0` makes this package
+# UNINSTALLABLE for anyone who has not already installed it by hand — pip resolves the
+# name against PyPI and 404s. A PEP 508 direct reference resolves without an index, so
+# `pip install .` and `pip install <this>@git+...` both work today for a stranger.
+#
+# Swap it back to a plain `minicheck>=0.2.0` when publishing to PyPI (PyPI rejects direct
+# references on upload). `python build_pypi.py` does that swap and builds the artifact.
+dependencies = ["minicheck @ git+https://github.com/nickharris808/minicheck@main"]
 
 [project.optional-dependencies]
 test = ["pytest>=7"]
