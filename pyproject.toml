@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "protocol-bench"
-version = "1.0.0"
+version = "1.1.0"
 description = "Ground-truth safety verdicts for 15 published IEEE 802.11 and 3GPP procedures, with machine-validated counterexamples."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -18,7 +18,7 @@ classifiers = [
   "Topic :: Security",
   "Topic :: Software Development :: Testing",
 ]
-dependencies = ["minicheck>=0.1.0"]
+dependencies = ["minicheck>=0.2.0"]
 
 [project.optional-dependencies]
 test = ["pytest>=7"]

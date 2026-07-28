@@ -4,9 +4,30 @@ A submission is a mapping from task id to a prediction:
 
     {"ieee_4way_handshake_krack": {"violated": true, "trace": [{"state": {...}}, ...]}}
 
-`violated` is required. `trace` is optional but is what separates a guess from a finding: if you
-supply one it is REPLAYED against the model, and a trace that does not replay is not counted as a
-detection.
+`violated` is required. `trace` is what separates a guess from a finding: it is REPLAYED against the
+model, and **a detection is credited only when its trace replays**. This is the benchmark's whole
+point, so it is enforced in the arithmetic rather than merely reported alongside it.
+
+Concretely, for a task that really is violated:
+
+===========================  ================  ==================================================
+submission                   scored as         why
+===========================  ================  ==================================================
+violated + replaying trace   true positive     the claim is backed by a witness
+violated + bogus trace       false negative    the bug was not actually found, only guessed at
+violated + no trace          false negative    same: an unsupported assertion earns no credit
+not violated                 false negative    missed it
+===========================  ================  ==================================================
+
+and for a task that is safe, *any* violation claim is a false positive whether or not a trace came
+with it — you cannot produce a replaying counterexample for a property that holds, so a trace here is
+either invalid or the model is wrong about something else.
+
+This closes a defect in the shipped version, where tp/fp/fn/tn were computed from ``violated`` alone
+and the replay result was carried in the report but never consulted. A submission that answered
+``violated: true`` with a trace of pure nonsense scored ``balanced_accuracy 1.0`` — the exact failure
+the benchmark exists to detect. ``accuracy_ignoring_replay`` is still reported so the gap between
+"claimed" and "demonstrated" is visible, but the headline number is the demonstrated one.
 """
 
 from __future__ import annotations
@@ -77,9 +98,13 @@ def score(submission: dict, tasks: Optional[list[Task]] = None) -> dict:
     confused.
     """
     tasks = tasks or load_tasks()
-    per_task, tp = [], 0
-    fp = fn = tn = 0
+    per_task = []
+    tp = fp = fn = tn = 0
     valid_traces = 0
+    unreplayed_claims = 0
+    # Secondary counters that ignore replay entirely, kept only to expose the gap between what a
+    # submission claimed and what it demonstrated.
+    tp_claimed = tn_claimed = 0
 
     for t in tasks:
         entry = submission.get(t.id) or {}
@@ -89,23 +114,40 @@ def score(submission: dict, tasks: Optional[list[Task]] = None) -> dict:
             if pred
             else {"supplied": False, "valid": False, "reason": "no violation predicted"}
         )
-        if pred and tr["valid"]:
+        # A detection counts only when a witness replays against the model.
+        credited = pred and bool(tr["valid"])
+        if credited:
             valid_traces += 1
+        elif pred:
+            unreplayed_claims += 1
 
-        if pred and t.is_violated:
-            tp += 1
-            outcome = "true_positive"
-        elif pred and not t.is_violated:
-            fp += 1
-            outcome = "false_positive"
-        elif not pred and t.is_violated:
-            fn += 1
-            outcome = "false_negative"
+        if t.is_violated:
+            if credited:
+                tp += 1
+                outcome = "true_positive"
+            else:
+                fn += 1
+                outcome = "false_negative_unreplayed" if pred else "false_negative"
+            tp_claimed += 1 if pred else 0
         else:
-            tn += 1
-            outcome = "true_negative"
+            if pred:
+                fp += 1
+                outcome = "false_positive"
+            else:
+                tn += 1
+                outcome = "true_negative"
+                tn_claimed += 1
 
-        per_task.append({"id": t.id, "label": t.label, "predicted_violated": pred, "outcome": outcome, "trace": tr})
+        per_task.append(
+            {
+                "id": t.id,
+                "label": t.label,
+                "predicted_violated": pred,
+                "credited_detection": credited,
+                "outcome": outcome,
+                "trace": tr,
+            }
+        )
 
     n = len(tasks)
     n_pos = sum(1 for t in tasks if t.is_violated)
@@ -115,6 +157,7 @@ def score(submission: dict, tasks: Optional[list[Task]] = None) -> dict:
 
     return {
         "n_tasks": n,
+        # Headline metrics. Every positive here is backed by a trace that replayed.
         "accuracy": (tp + tn) / n if n else 0.0,
         "balanced_accuracy": (recall_pos + recall_neg) / 2,
         "recall_violated": recall_pos,
@@ -124,7 +167,11 @@ def score(submission: dict, tasks: Optional[list[Task]] = None) -> dict:
         "false_negatives": fn,
         "true_negatives": tn,
         "valid_counterexamples": valid_traces,
-        "detections_claimed": tp + fp,
+        "detections_claimed": sum(1 for r in per_task if r["predicted_violated"]),
+        "unreplayed_claims": unreplayed_claims,
+        # Secondary: what the score WOULD have been if claims were taken at face value. A large gap
+        # between this and `accuracy` means the submission is asserting more than it can show.
+        "accuracy_ignoring_replay": (tp_claimed + tn_claimed) / n if n else 0.0,
         "trivial_always_safe_accuracy": n_neg / n if n else 0.0,
         "per_task": per_task,
     }

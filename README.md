@@ -2,7 +2,7 @@
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/protocol-bench#install)
 [![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-61%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-122%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![tasks](https://img.shields.io/badge/tasks-15-orange)
@@ -71,17 +71,22 @@ score({t.id: {"violated": False} for t in tasks})["balanced_accuracy"]   # 0.5
 |---|---|---|---|---|
 | `bfs` — exhaustive reachability | **1.000** | 1.000 | 2 | **2** |
 | `always-safe` | 0.500 | **0.867** | 0 | 0 |
-| `always-violated` | 0.500 | 0.133 | 15 | **0** |
+| `always-violated` | 0.000 | 0.000 | 15 | **0** |
 
 Read those three rows together, because they are the argument for the metric:
 
 - **`always-safe` gets 86.7% accuracy** by guessing. Most published procedures are safe, so plain
   accuracy is nearly uninformative here. That is why the headline is **balanced accuracy**, on which
   the same guesser scores 0.500.
-- **`always-violated` claims 15 detections and validates zero.** Claiming everything is broken is not
-  a finding. The `valid CEX` column is what separates a detector from a guesser.
+- **`always-violated` claims 15 detections and validates zero, and scores 0.000.** Claiming
+  everything is broken is not a finding: the 13 safe tasks become false positives, and the 2 real
+  ones earn nothing because no trace replays. The `valid CEX` column is what separates a detector
+  from a guesser.
 - **`bfs` is the ceiling, not a competitor.** It is sound and complete over a finite model that has
   already been formalised for it. The open problem is doing this *from the spec text*.
+
+A submission that answers every task correctly but fabricates its traces scores **0.500** — the same
+as the trivial guesser, which is what it is. See [Honest scope](#honest-scope).
 
 ## The task set
 
@@ -193,15 +198,43 @@ A trace that does not replay is reported with the reason it failed:
 | `recall_violated` / `recall_safe` | Per-class recall |
 | `per_task` | Row per task: outcome and the trace-validation verdict with its reason |
 
-## Scope and honesty
+## Honest scope
 
-These are **models of published procedures**, not the standards themselves and not implementations.
-A `PROVEN_SAFE` label means the property holds over the modelled state space — it is not a claim that
-any shipping product is secure. A model abstracts, and an abstraction can hide a real defect.
+**Scoring credits a detection only when its trace replays.** For a task that really is violated:
 
-The task set is small and deliberately imbalanced, because that is what the published-procedure
-population actually looks like. Treat per-task outcomes as the primary result and the aggregate as a
-summary.
+| submission | scored as |
+|---|---|
+| `violated` + a trace that replays | true positive |
+| `violated` + a trace that does not replay | false negative |
+| `violated` + no trace | false negative |
+| not `violated` | false negative |
+
+For a safe task, *any* violation claim is a false positive. `accuracy_ignoring_replay` is reported
+alongside so the gap between what a submission asserted and what it demonstrated stays visible, and
+`unreplayed_claims` counts the difference.
+
+This matters because guessing is easy here. "The WPA2 four-way handshake" sits next to "vulnerable"
+in every training corpus, so a model can be right about it having done no reasoning at all. Under
+verdict-only scoring, a submission that answers every task correctly and fabricates every trace
+scores **1.0**. Under replay-gated scoring it scores **0.5** — exactly the trivial always-safe
+guesser, which is what it is.
+
+**What a result proves.** That a submission produced a counterexample which replays against the
+published model: it starts at the initial state, every step is a real transition, and the final state
+violates the named property.
+
+**What it does not prove.**
+
+- Nothing about shipping products. These are **models of published procedures**, not the standards
+  themselves and not implementations. `PROVEN_SAFE` means the property holds over the modelled state
+  space; a model abstracts, and an abstraction can hide a real defect.
+- Nothing statistically robust. 15 tasks, 2 of them violated. The set is deliberately imbalanced
+  because the published-procedure population is. **Treat per-task outcomes as the primary result and
+  any aggregate as a summary** — a single task flipping moves balanced accuracy by 0.25.
+- Nothing about generalisation. A model that has memorised these 15 will score well.
+
+**A scoring bug shipped in 1.0.0 and is fixed here (1.1.0).** Replay validation was computed and then
+ignored by the headline metric. See [SECURITY-ADVISORY.md](SECURITY-ADVISORY.md).
 
 ## Where this came from, and what is not here
 
@@ -216,7 +249,7 @@ tooling. The benchmark is MIT and stays that way; the generator is the commercia
 pip install -e ".[test]" && pytest
 ```
 
-61 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
+122 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
 labels cannot drift away from the shipped models; the rest cover trace-validation failure modes, the
 prompt builders (including that the prompt never leaks the answer), the reply parser, and the CLI.
 
@@ -226,7 +259,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~560 lines. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1308 lines. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) ← *you are here* | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |

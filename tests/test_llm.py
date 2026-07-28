@@ -134,8 +134,16 @@ def test_a_model_that_claims_everything_without_traces_validates_nothing():
     assert res["false_positives"] == 13
 
 
-def test_a_correct_verdict_with_a_fabricated_trace_gets_the_verdict_but_not_the_proof():
-    """This is the property the whole harness exists to measure."""
+def test_a_correct_verdict_with_a_fabricated_trace_earns_no_credit():
+    """This is the property the whole harness exists to measure.
+
+    The model reaches the right conclusion about KRACK but supplies a trace that does not replay.
+    It gets NO true positive: guessing "violated" on a task whose name contains "krack" is not
+    finding the bug, and the benchmark's reason for existing is to tell those two apart.
+
+    This test previously asserted ``true_positives == 1`` here — the score credited the guess and
+    kept the failed replay in a column nothing read.
+    """
     completions = {t.id: '{"violated": false}' for t in TASKS}
     completions[KRACK.id] = json.dumps(
         {
@@ -144,10 +152,13 @@ def test_a_correct_verdict_with_a_fabricated_trace_gets_the_verdict_but_not_the_
         }
     )
     res = score_completions(completions)
-    assert res["true_positives"] == 1  # right answer
+    assert res["true_positives"] == 0  # claimed, but never demonstrated
     assert res["valid_counterexamples"] == 0  # unproven: does not start at the initial state
+    assert res["unreplayed_claims"] == 1  # and the report says so out loud
     row = next(r for r in res["per_task"] if r["id"] == KRACK.id)
     assert row["trace"]["valid"] is False
+    assert row["credited_detection"] is False
+    assert row["outcome"] == "false_negative_unreplayed"
     assert "initial state" in row["trace"]["reason"]
 
 

@@ -158,12 +158,17 @@ def test_an_empty_submission_is_scored_as_all_safe():
     assert res["false_negatives"] == 2
 
 
-def test_a_detection_with_a_bogus_trace_still_counts_as_a_prediction_but_not_as_validated():
-    """Separating 'predicted correctly' from 'proved it' is the point of the trace column."""
+def test_a_detection_with_a_bogus_trace_earns_no_true_positive():
+    """Separating 'predicted correctly' from 'proved it' is the point of the trace column — and the
+    headline metric is now computed from the second, not the first."""
     task = next(t for t in TASKS if t.id == "ieee_4way_handshake_krack")
     res = score({task.id: {"violated": True, "trace": [{"state": {"bogus": 1}}]}})
-    assert res["true_positives"] == 1
+    assert res["true_positives"] == 0
     assert res["valid_counterexamples"] == 0
+    assert res["unreplayed_claims"] == 1
+    # The claim is still visible, so the gap between asserted and demonstrated is legible.
+    assert res["detections_claimed"] == 1
+    assert res["accuracy_ignoring_replay"] > res["accuracy"]
 
 
 def test_per_task_rows_are_complete():

@@ -120,31 +120,83 @@ def build_prompts(mode: str = "model", tasks: Optional[list[Task]] = None) -> di
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S)
 
 
+def _balanced_spans(text: str):
+    """Yield ``(start, end)`` for each brace-balanced region, in one left-to-right pass.
+
+    Tracks string and escape state so a ``{`` inside a JSON string does not open a region. Every
+    character is visited exactly once, so this is O(len(text)) regardless of how adversarial the
+    input is — which matters, because the text is a language model's reply and nothing constrains
+    its shape.
+    """
+    depth = 0
+    start = -1
+    in_str = False
+    escaped = False
+    for i, ch in enumerate(text):
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start != -1:
+                    yield start, i + 1
+                    start = -1
+
+
+def _json_objects(text: str):
+    """Yield every JSON object embedded in `text`, left to right.
+
+    The previous implementation tried every (start, end) substring pair and called `json.loads` on
+    each, which is cubic in the length of the reply: a brace-heavy 3.2 KB input took 4.4 seconds and
+    a 50 KB model reply stalled scoring for minutes. This scans once for balanced regions and parses
+    each candidate at most once.
+    """
+    for start, end in _balanced_spans(text):
+        try:
+            obj = json.loads(text[start:end])
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            yield obj
+
+
 def parse_response(text: str) -> dict:
     """Extract a prediction from a model's reply, tolerantly.
 
     Handles a bare JSON object, a fenced code block, or JSON with prose around it. A reply that
-    cannot be parsed is scored as `violated: false` — an unreadable answer is not a detection.
+    cannot be parsed is scored as `violated: false` **with ``parse_error: True``** — an unreadable
+    answer is not a detection, and the flag keeps that distinct from a model that actually looked
+    and found nothing. `score_completions` surfaces the count, so a run where the parser silently
+    ate every reply cannot masquerade as a run where the model was simply cautious.
     """
     if isinstance(text, dict):
         raw = text
     else:
-        candidates = _FENCE.findall(text or "")
-        candidates.append(text or "")
         raw = None
-        for c in candidates:
-            c = c.strip()
-            start = c.find("{")
-            while start != -1 and raw is None:
-                for end in range(len(c), start, -1):
-                    try:
-                        obj = json.loads(c[start:end])
-                    except Exception:
-                        continue
-                    if isinstance(obj, dict) and "violated" in obj:
-                        raw = obj
+        # An object we care about must contain the key, so the key must appear in the raw text.
+        # This one O(n) substring check short-circuits the pathological case (a reply that is all
+        # opening braces and no JSON), where the scan below would otherwise attempt a decode at
+        # every brace: 100 KB of "{{{{..." goes from ~0.7s to ~0.001s.
+        if '"violated"' not in (text or ""):
+            return {"violated": False, "trace": None, "parse_error": True}
+        # Fenced blocks first (the model was explicit), then the whole reply.
+        for chunk in [*_FENCE.findall(text or ""), text or ""]:
+            for obj in _json_objects(chunk):
+                if "violated" in obj:
+                    raw = obj
                     break
-                start = c.find("{", start + 1)
             if raw is not None:
                 break
         if raw is None:
