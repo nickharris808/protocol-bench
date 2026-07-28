@@ -79,3 +79,65 @@ def test_readme_states_what_the_tool_does_not_establish():
     assert re.search(r"^#+ .*(honest scope|limitations|what this does not)", text, re.M | re.I), (
         "README has no section stating the tool's limits"
     )
+
+
+def test_no_claim_is_made_about_another_repo_that_this_one_cannot_verify():
+    """A line count for a *different* package cannot be checked from here, so it must not be quoted.
+
+    A bulk reconciliation once rewrote the portfolio table's description of `minicheck` using THIS
+    repository's line count, so four READMEs confidently stated a wrong number about a package they
+    do not contain. Numbers about other repos are now simply absent.
+    """
+    import re
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    for line in readme.splitlines():
+        if "github.com/nickharris808/" not in line:
+            continue
+        # The row describing this repo may quote its own numbers; rows about others may not.
+        others = [
+            m
+            for m in re.findall(r"github\.com/nickharris808/([a-z-]+)", line)
+            if m != Path(__file__).resolve().parents[1].name
+        ]
+        if others and re.search(r"~\d+\s+lines|\d+\s+tests", line):
+            raise AssertionError(f"unverifiable claim about {others}: {line.strip()}")
+
+
+def test_the_performance_claims_hold_as_ceilings():
+    """The README quotes timings; these assert them as upper bounds with generous headroom.
+
+    A CI runner is slower and noisier than a laptop, so each bound is ~10x the measured figure. That
+    is still tight enough to catch a real regression — `parse_response` was accidentally *cubic* in
+    the reply length once, which would exceed these by orders of magnitude — while being immune to
+    ordinary scheduling noise.
+    """
+    import time
+
+    from protocol_bench import bfs_baseline, load_tasks, parse_response, score
+
+    def best(fn, n):
+        return min(_timed(fn) for _ in range(n))
+
+    def _timed(fn):
+        t0 = time.perf_counter()
+        fn()
+        return time.perf_counter() - t0
+
+    tasks = load_tasks()
+    assert best(load_tasks, 20) < 1e-3, "warm load_tasks should stay well under a millisecond"
+
+    submission = bfs_baseline(tasks)
+    assert best(lambda: score(submission), 10) < 5e-3, "score() should stay under 5 ms"
+
+    typical = "The invariant is VIOLATED. " * 15
+    assert best(lambda: parse_response(typical), 500) < 2e-5
+
+    # Linear, not cubic: 10x the input must not cost anywhere near 1000x the time.
+    long_reply = "Reasoning step. " * 250 + " VIOLATED"
+    t_typical = best(lambda: parse_response(typical), 500)
+    t_long = best(lambda: parse_response(long_reply), 500)
+    assert t_long < max(t_typical * 60, 5e-5), (
+        f"parse_response scaled badly: {t_typical * 1e6:.2f}us -> {t_long * 1e6:.2f}us"
+    )

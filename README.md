@@ -2,7 +2,7 @@
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/protocol-bench#install)
 [![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-123%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![tasks](https://img.shields.io/badge/tasks-15-orange)
@@ -18,18 +18,14 @@ reasoning that should justify it. "The WPA2 four-way handshake" is strongly asso
 "vulnerable" in any training corpus, so a model can be right about it having done no reasoning at all
 — and verdict-only scoring cannot tell that apart from understanding.
 
-Requiring a **counterexample that replays** closes both gaps. The trace must start at the initial
-state, move only along real transitions, and end in a genuinely violating state. Recalling a CVE does
-not produce one; reasoning about the state machine does.
+This is a fixed, versioned task set that closes both gaps: fifteen real procedures from published
+standards, each with a named safety property and a ground-truth label. Two genuinely violate their
+property; thirteen do not.
 
-Protocol-verification papers each roll their own models, so results are not comparable. This is a
-fixed, versioned task set: fifteen real procedures from published standards, each with a named safety
-property and a ground-truth label. Two of them genuinely violate their property; thirteen do not.
-
-The interesting bit is the scoring. Predicting "violated" is cheap. Supplying a **counterexample that
-replays against the model** is not — so the benchmark validates every trace you submit: it must start
-at the initial state, every step must be a real transition, and the final state must actually violate
-the property.
+The interesting part is the scoring. Predicting "violated" is cheap; supplying a **counterexample
+that replays against the model** is not. Every trace you submit is validated — it must start at the
+initial state, every step must be a real transition, and the final state must actually violate the
+property. Recalling a CVE does not produce such a trace; reasoning about the state machine does.
 
 ## Install
 
@@ -327,11 +323,13 @@ issue.
 
 ## Performance
 
-Measured: `load_tasks()` takes about **4 ms** on the first call, which parses and builds all 15
-models, and about **0.1 ms** on subsequent calls. A full `score()` with replay
-validation of every trace takes about **0.1 ms**. `parse_response` is about **3 µs** per reply.
-Nothing here is a bottleneck and nothing has been optimised for speed beyond fixing one genuine
-defect — the reply parser was accidentally cubic in the reply length and is now linear.
+Measured: `load_tasks()` takes about **3.5 ms** on the first call, which parses and builds all 15
+models, and about **0.05 ms** on subsequent calls. A full `score()` with replay validation of every
+trace takes about **0.06 ms**. `parse_response` is about **0.2 µs** on a typical reply and **1.3 µs**
+on a 4 kB one — it is linear in the reply length, having been accidentally cubic before that defect
+was fixed. Nothing here is a bottleneck and nothing else has been optimised for speed.
+
+These are ceilings in the test suite rather than decoration, so a performance regression fails CI.
 
 ## Tests
 
@@ -339,7 +337,7 @@ defect — the reply parser was accidentally cubic in the reply length and is no
 pip install -e ".[test]" && pytest
 ```
 
-123 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
+125 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
 labels cannot drift away from the shipped models; the rest cover trace-validation failure modes, the
 prompt builders (including that the prompt never leaks the answer), the reply parser, and the CLI.
 
@@ -349,7 +347,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1290 lines, with a CLI. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker with a CLI. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) ← *you are here* | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |
