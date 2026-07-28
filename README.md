@@ -327,7 +327,8 @@ issue.
 
 ## Performance
 
-Measured: `load_tasks()` takes about **4.4 ms** for all 15 tasks, and a full `score()` with replay
+Measured: `load_tasks()` takes about **4 ms** on the first call, which parses and builds all 15
+models, and about **0.1 ms** on subsequent calls. A full `score()` with replay
 validation of every trace takes about **0.1 ms**. `parse_response` is about **3 µs** per reply.
 Nothing here is a bottleneck and nothing has been optimised for speed beyond fixing one genuine
 defect — the reply parser was accidentally cubic in the reply length and is now linear.
