@@ -11,9 +11,8 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from minicheck._core import _reachable
-
 from minicheck import check_safety
+from minicheck._core import _reachable
 
 from .llm import build_prompt, render_model
 from .tasks import Task, load_tasks

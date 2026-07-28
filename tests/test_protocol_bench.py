@@ -8,6 +8,8 @@ than trusted.
 import json
 
 import pytest
+from minicheck import check_safety
+
 from protocol_bench import (
     BASELINES,
     CANDIDATE,
@@ -21,8 +23,6 @@ from protocol_bench import (
     validate_trace,
 )
 from protocol_bench.cli import main as cli_main
-
-from minicheck import check_safety
 
 TASKS = load_tasks()
 

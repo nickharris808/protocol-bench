@@ -7,6 +7,8 @@ testable with synthesised completions.
 import json
 
 import pytest
+from minicheck import check_safety
+
 from protocol_bench import (
     MODES,
     build_prompt,
@@ -16,8 +18,6 @@ from protocol_bench import (
     render_model,
     score_completions,
 )
-
-from minicheck import check_safety
 
 TASKS = load_tasks()
 KRACK = next(t for t in TASKS if t.id == "ieee_4way_handshake_krack")
@@ -261,6 +261,7 @@ def test_every_violated_row_has_a_counterexample_and_safe_rows_do_not():
 
 def test_exported_transitions_match_the_live_model():
     from minicheck._core import _reachable
+
     from protocol_bench.export import export_rows
 
     for r in export_rows():
