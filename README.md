@@ -246,6 +246,92 @@ this package: the *foundry* that generates and classifies new procedures, the de
 tournament that scores how hard a finding is to engineer around, and the standards-essentiality
 tooling. The benchmark is MIT and stays that way; the generator is the commercial offering.
 
+## API and CLI reference
+
+### CLI
+
+| Command | What it does |
+|---|---|
+| `protocol-bench info` | dataset version and task counts |
+| `protocol-bench list` | every task with its label |
+| `protocol-bench run BASELINE` | run a built-in baseline (`bfs`, `always-safe`, `always-violated`) and score it |
+| `protocol-bench score FILE` | score a submission JSON file |
+| `protocol-bench prompts` | emit one prompt per task for a language model |
+| `protocol-bench score-completions FILE` | score raw model replies (`{task_id: "reply text"}`) |
+| `protocol-bench export` | export the task set as JSON Lines |
+
+Common flags: `-o FILE` to write output, `--json` for machine-readable results, and
+`--mode {model,spec}` on `prompts` and `export` to choose the difficulty.
+
+### Python API
+
+| Name | What it does |
+|---|---|
+| `load_tasks()` | every `Task` in the benchmark |
+| `Task.build()` | the `minicheck.Protocol` for that task |
+| `Task.build_fixed()` | the repaired twin, where one exists (`Task.fixed_builder`) |
+| `Task.property` | the name of the safety property being checked |
+| `Task.is_violated` | ground truth |
+| `Task.label` | `KNOWN_COUNTEREXAMPLE`, `CANDIDATE_COUNTEREXAMPLE`, or `PROVEN_SAFE` |
+| `score(submission, tasks=None)` | the full report (see below) |
+| `validate_trace(task, trace)` | replay one claimed counterexample; returns `{valid, reason}` |
+| `build_prompt(task, mode)` | the prompt text for a task |
+| `score_completions(completions)` | parse raw replies, then score |
+| `BASELINES` | name → callable for the built-in baselines |
+
+### What `score()` returns
+
+| Key | Meaning |
+|---|---|
+| `balanced_accuracy` | **headline.** Mean of per-class recall, computed from credited detections |
+| `accuracy` | plain accuracy, also replay-gated |
+| `accuracy_ignoring_replay` | what the score would be if claims were taken at face value |
+| `unreplayed_claims` | detections claimed whose trace did not replay |
+| `valid_counterexamples` | detections whose trace did replay |
+| `true_positives` / `false_positives` / `false_negatives` / `true_negatives` | the confusion matrix; always sums to `n_tasks` |
+| `trivial_always_safe_accuracy` | what guessing "safe" everywhere scores |
+| `per_task` | one row per task: `predicted_violated`, `credited_detection`, `outcome`, `trace` |
+
+A large gap between `accuracy_ignoring_replay` and `accuracy` means the submission asserted more
+than it demonstrated.
+
+## Troubleshooting
+
+**My submission scored 0 true positives but I got the verdicts right.** A detection is credited only
+when its trace replays. Check `unreplayed_claims` and the per-task `trace.reason`, which names the
+first thing that failed: wrong initial state, a step that is not a transition, or a final state that
+does not violate the property.
+
+**`trace does not start at the initial state`.** The first entry must be the model's initial state
+exactly. Get it from `task.build().initial`.
+
+**`step i -> i+1 is not a transition of the model`.** The trace jumps. Every consecutive pair must be
+connected by a real transition; check against `model.transitions(state)`.
+
+**`final state does not violate the property`.** The trace is a legal path that stops too early. It
+must end *in* the violating state, not one step before it.
+
+**`a step does not name the model's fields`.** Each entry is `{"state": {field: value, ...}}` with
+every field present, or a bare list in field order.
+
+**`n_unparseable` is high.** The model replied in prose. The parser accepts bare JSON, fenced blocks,
+and JSON embedded in text, but the object must contain a `violated` key. Unparseable replies are
+counted separately from cautious ones, so the two are never confused.
+
+**`balanced_accuracy` is 0.5 and I thought I did well.** 0.5 is the trivial guesser. If
+`accuracy_ignoring_replay` is much higher, the submission is asserting more than it can demonstrate.
+
+**A task is labelled `CANDIDATE_COUNTEREXAMPLE`.** The property fails and no published citation was
+found. It is unconfirmed on purpose — if you can cite it, or show the model is wrong, please open an
+issue.
+
+## Performance
+
+Measured: `load_tasks()` takes about **4.4 ms** for all 15 tasks, and a full `score()` with replay
+validation of every trace takes about **0.1 ms**. `parse_response` is about **3 µs** per reply.
+Nothing here is a bottleneck and nothing has been optimised for speed beyond fixing one genuine
+defect — the reply parser was accidentally cubic in the reply length and is now linear.
+
 ## Tests
 
 ```
@@ -262,7 +348,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1308 lines. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1619 lines, with a CLI. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) ← *you are here* | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |
