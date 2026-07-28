@@ -1,0 +1,43 @@
+name: "protocol-bench"
+description: >
+  Score a protocol-bench submission in CI. Every claimed counterexample is replayed against the
+  model, so a submission cannot claim a detection it cannot demonstrate. Fails the job if the
+  headline metric falls below a threshold.
+branding:
+  icon: "check-circle"
+  color: "purple"
+inputs:
+  submission:
+    description: "Path to a submission JSON file (task id -> {violated, trace})."
+    required: false
+    default: "submission.json"
+  completions:
+    description: "Path to raw model replies (task id -> completion text). Overrides `submission`."
+    required: false
+    default: ""
+  min-balanced-accuracy:
+    description: "Fail the job if balanced accuracy is below this."
+    required: false
+    default: "0.0"
+  require-valid-counterexamples:
+    description: "Fail the job unless at least this many claimed detections replay."
+    required: false
+    default: "0"
+outputs:
+  balanced-accuracy:
+    description: "Balanced accuracy (the headline metric)."
+    value: ${{ steps.run.outputs.balanced-accuracy }}
+  valid-counterexamples:
+    description: "Detections whose trace replayed against the model."
+    value: ${{ steps.run.outputs.valid-counterexamples }}
+runs:
+  using: "composite"
+  steps:
+    - id: run
+      shell: bash
+      run: ${{ github.action_path }}/entrypoint.sh
+      env:
+        PB_SUBMISSION: ${{ inputs.submission }}
+        PB_COMPLETIONS: ${{ inputs.completions }}
+        PB_MIN_BA: ${{ inputs.min-balanced-accuracy }}
+        PB_MIN_CEX: ${{ inputs.require-valid-counterexamples }}

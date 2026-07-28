@@ -1,0 +1,193 @@
+{
+  "description": "Ground-truth safety verdicts for published IEEE 802.11 and 3GPP procedures.",
+  "label_values": [
+    "KNOWN_COUNTEREXAMPLE",
+    "CANDIDATE_COUNTEREXAMPLE",
+    "PROVEN_SAFE"
+  ],
+  "n_tasks": 15,
+  "name": "protocol-bench",
+  "tasks": [
+    {
+      "builder": "four_way_handshake",
+      "citation": "Vanhoef & Piessens, \"Key Reinstallation Attacks: Forcing Nonce Reuse in WPA2\", ACM CCS 2017; CVE-2017-13077..13088 (KRACK).",
+      "fixed_builder": "four_way_handshake_fixed",
+      "id": "ieee_4way_handshake_krack",
+      "known_finding": "Retransmitted/replayed EAPOL-Key msg3 triggers PTK reinstallation, resetting the TX nonce and replay counter -> nonce reuse.",
+      "label": "KNOWN_COUNTEREXAMPLE",
+      "module": "ieee",
+      "property": "nonce_never_reused",
+      "spec_clause": "IEEE 802.11-2020 \u00a712.7.6 (4-way handshake) / IEEE 802.11i",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "ft_handshake",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_ft_handshake_802_11r",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_data_before_key_confirm",
+      "spec_clause": "IEEE 802.11-2020 \u00a713 (Fast BSS Transition)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "mlo_tid_to_link",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_mlo_tid_to_link",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_tx_on_inactive_link",
+      "spec_clause": "IEEE 802.11be/bn MLO TID-to-link mapping (\u00a735)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "block_ack",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_block_ack_scoreboard",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_duplicate_delivered",
+      "spec_clause": "IEEE 802.11-2020 \u00a710.25 (Block Ack reordering / scoreboard)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "twt",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_twt_wake_sleep",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_delivery_while_asleep",
+      "spec_clause": "IEEE 802.11ax/be Target Wake Time (\u00a726.8)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "uapsd",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_uapsd_pspoll",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_delivery_without_trigger",
+      "spec_clause": "IEEE 802.11-2020 \u00a711.2 (U-APSD / PS-Poll power save)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "sa_query",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_sa_query",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_spoofed_disassoc_accepted",
+      "spec_clause": "IEEE 802.11-2020 \u00a711.3 / \u00a712 (SA Query, protected management frames / 802.11w)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "fils",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "ieee_fils_auth",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "ieee",
+      "property": "no_data_before_key",
+      "spec_clause": "IEEE 802.11ai Fast Initial Link Setup (\u00a712.12)",
+      "standards_body": "IEEE"
+    },
+    {
+      "builder": "rrc_state_machine",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "3gpp_rrc_state_machine",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "cellular",
+      "property": "no_data_in_idle",
+      "spec_clause": "3GPP TS 38.331 \u00a74.2 (RRC states: IDLE/INACTIVE/CONNECTED)",
+      "standards_body": "3GPP"
+    },
+    {
+      "builder": "pdcp_reordering",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "3gpp_pdcp_reordering",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "cellular",
+      "property": "no_duplicate_delivered",
+      "spec_clause": "3GPP TS 38.323 \u00a75.2 (PDCP reordering / duplication discard)",
+      "standards_body": "3GPP"
+    },
+    {
+      "builder": "rlc_am_retx",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "3gpp_rlc_am_retx",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "cellular",
+      "property": "retx_bounded_no_runaway",
+      "spec_clause": "3GPP TS 38.322 \u00a75.2/\u00a75.3 (RLC AM retransmission, maxRetxThreshold)",
+      "standards_body": "3GPP"
+    },
+    {
+      "builder": "drx_timers",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "3gpp_drx_timers",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "cellular",
+      "property": "awake_when_pdcch_expected",
+      "spec_clause": "3GPP TS 38.321 \u00a75.7 (DRX onDuration / inactivity / RTT timers)",
+      "standards_body": "3GPP"
+    },
+    {
+      "builder": "rach",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "3gpp_rach_contention",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "cellular",
+      "property": "no_undetected_collision",
+      "spec_clause": "3GPP TS 38.321 \u00a75.1 (Random access, contention resolution)",
+      "standards_body": "3GPP"
+    },
+    {
+      "builder": "beam_failure_recovery",
+      "citation": null,
+      "fixed_builder": null,
+      "id": "3gpp_beam_failure_recovery",
+      "known_finding": null,
+      "label": "PROVEN_SAFE",
+      "module": "cellular",
+      "property": "recover_before_rlf",
+      "spec_clause": "3GPP TS 38.321 \u00a75.17 / TS 38.213 \u00a76 (Beam failure recovery)",
+      "standards_body": "3GPP"
+    },
+    {
+      "builder": "xn_handover",
+      "citation": null,
+      "fixed_builder": "xn_handover_fixed",
+      "id": "3gpp_xn_handover_premature_release",
+      "known_finding": null,
+      "label": "CANDIDATE_COUNTEREXAMPLE",
+      "module": "cellular",
+      "property": "always_one_serving_context",
+      "spec_clause": "3GPP TS 38.300 \u00a79.2.3 / TS 38.423 (Xn handover, data forwarding & path switch)",
+      "standards_body": "3GPP"
+    }
+  ],
+  "version": "1.0.0"
+}

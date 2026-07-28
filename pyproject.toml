@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "protocol-bench"
+version = "1.0.0"
+description = "Ground-truth safety verdicts for 15 published IEEE 802.11 and 3GPP procedures, with machine-validated counterexamples."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["benchmark", "protocol-verification", "model-checking", "ieee-802-11", "3gpp", "krack", "llm-evaluation"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = ["minicheck>=0.1.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+protocol-bench = "protocol_bench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+protocol_bench = ["data/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
