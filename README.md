@@ -2,7 +2,7 @@
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/protocol-bench#install)
 [![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-122%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-123%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![tasks](https://img.shields.io/badge/tasks-15-orange)
@@ -339,7 +339,7 @@ defect — the reply parser was accidentally cubic in the reply length and is no
 pip install -e ".[test]" && pytest
 ```
 
-122 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
+123 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
 labels cannot drift away from the shipped models; the rest cover trace-validation failure modes, the
 prompt builders (including that the prompt never leaks the answer), the reply parser, and the CLI.
 
@@ -349,7 +349,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1619 lines, with a CLI. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1290 lines, with a CLI. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) ← *you are here* | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |

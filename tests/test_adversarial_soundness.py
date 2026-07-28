@@ -251,3 +251,17 @@ def test_every_task_labelled_violated_really_is():
         assert holds is (not t.is_violated), (
             f"{t.id}: label says violated={t.is_violated} but checker says holds={holds}"
         )
+
+
+def test_a_malformed_submission_entry_is_no_prediction_not_a_crash():
+    """A submission arrives from a user or a model, so a non-object entry is expected input.
+
+    Found by the specforge stress sweep and present here identically. The conservative reading is
+    that it claims nothing and is therefore credited with nothing.
+    """
+    for bad in ("a string", ["a", "list"], 42, None, True, 3.14):
+        res = score({TASKS[0].id: bad})
+        assert res["n_tasks"] == len(TASKS)
+        assert res["true_positives"] == 0
+        total = res["true_positives"] + res["false_positives"] + res["false_negatives"] + res["true_negatives"]
+        assert total == len(TASKS)

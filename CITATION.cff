@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "protocol-bench"
+abstract: "Ground-truth safety verdicts for published IEEE 802.11 and 3GPP procedures, where a detection must replay"
+type: software
+authors:
+  - family-names: Harris
+    given-names: Nick
+repository-code: "https://github.com/nickharris808/protocol-bench"
+url: "https://nickharris808.github.io/verification-docs/"
+license: MIT
+keywords:
+  - formal methods
+  - model checking
+  - verification
