@@ -1,7 +1,7 @@
 # protocol-bench
 
-[![PyPI](https://img.shields.io/badge/pypi-protocol--bench-blue)](https://pypi.org/project/protocol-bench/)
-[![CI](https://img.shields.io/badge/ci-passing-brightgreen)](../.github/workflows/ci.yml)
+[![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/protocol-bench#install)
+[![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-61%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -34,10 +34,13 @@ the property.
 ## Install
 
 ```
-pip install protocol-bench
+# from GitHub (PyPI release pending)
+pip install "protocol-bench @ git+https://github.com/nickharris808/protocol-bench.git"
 ```
 
-This pulls in [`minicheck`](../minicheck), the model checker the task models are written against.
+> `pip install protocol-bench` will work once the PyPI release lands. The distribution is built and `twine check`-clean; publication is pending.
+
+This pulls in [`minicheck`](https://github.com/nickharris808/minicheck), the model checker the task models are written against.
 
 ## 30-second quickstart
 
@@ -207,10 +210,6 @@ this package: the *foundry* that generates and classifies new procedures, the de
 tournament that scores how hard a finding is to engineer around, and the standards-essentiality
 tooling. The benchmark is MIT and stays that way; the generator is the commercial offering.
 
-## Related
-
-- [`minicheck`](../minicheck) — the model checker the models are written against, and the `bfs` baseline.
-
 ## Tests
 
 ```
@@ -220,6 +219,27 @@ pip install -e ".[test]" && pytest
 61 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
 labels cannot drift away from the shipped models; the rest cover trace-validation failure modes, the
 prompt builders (including that the prompt never leaks the answer), the reply parser, and the CLI.
+
+## The portfolio
+
+Five small, independently useful tools built around one idea: **a verdict you cannot check is not a verdict.**
+
+| | |
+|---|---|
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~560 lines. Shortest counterexamples, no required dependencies. |
+| [`protocol-bench`](https://github.com/nickharris808/protocol-bench) ← *you are here* | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
+| [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
+| [`polyfrac`](https://github.com/nickharris808/polyfrac) | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |
+| [`failclosed`](https://github.com/nickharris808/failclosed) | Default-deny ASGI middleware: a gated endpoint succeeds only on an affirmative verdict. |
+
+Try it in your browser: **[live demo](https://huggingface.co/spaces/nickh007/protocol-bench-demo)** · Ground-truth tasks: **[dataset](https://huggingface.co/datasets/nickh007/protocol-bench)**
+
+### The commercial offering
+
+These are the engine. What is **not** open source is what makes it useful at scale: the maintained
+hazard-property corpora, composition analysis that finds hazards existing only when two components
+are combined, the trust-model sensitivity sweep, and the evidence trail that makes a verdict auditable
+after the fact. The tools above are MIT and stay that way.
 
 ## Licence
 
