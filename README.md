@@ -1,7 +1,7 @@
 # protocol-bench
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/protocol-bench#install)
-[![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
+[![CI](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -30,14 +30,14 @@ property. Recalling a CVE does not produce such a trace; reasoning about the sta
 ## Install
 
 ```
-# from GitHub (PyPI release pending)
+pip install protocol-bench
+
+# or from source, unreleased main:
 pip install "protocol-bench @ git+https://github.com/nickharris808/protocol-bench.git"
 ```
 
-> `pip install protocol-bench` does not work yet — the package is not on PyPI. Install from GitHub
-> as shown above; that pulls in `minicheck` automatically. `python build_pypi.py` produces a
-> PyPI-uploadable artifact for when both packages are published (PyPI rejects the direct dependency
-> reference this package uses to stay installable without an index).
+> Published on PyPI as **`protocol-bench` 1.1.0** (2026-07-30). `pip install protocol-bench` works.
+> The `git+https` form above installs unreleased `main` instead.
 
 This pulls in [`minicheck`](https://github.com/nickharris808/minicheck), the model checker the task models are written against.
 
@@ -321,15 +321,75 @@ counted separately from cautious ones, so the two are never confused.
 found. It is unconfirmed on purpose — if you can cite it, or show the model is wrong, please open an
 issue.
 
+## FAQ
+
+**"Why does a benchmark need traces? Isn't the verdict the answer?"**
+Because the verdict is guessable and the trace is not. "The WPA2 four-way handshake" sits next to
+"vulnerable" in every training corpus, so a model can be right about it having done no reasoning at
+all, and verdict-only scoring cannot tell that apart from understanding. Measured here: a submission
+that answers **every task correctly** and fabricates every trace scored **1.0** under the original
+verdict-only scoring, and scores **0.5** under replay-gated scoring — exactly what guessing scores.
+`accuracy_ignoring_replay` is reported next to `accuracy`, and the gap between them is the
+measurement.
+
+**"Fifteen tasks is a tiny benchmark."**
+It is, and that is the first limitation stated in [Honest scope](#honest-scope). One task flipping
+moves balanced accuracy by 0.25. Treat per-task outcomes as the primary result and the aggregate as a
+summary, and report the task-set version alongside any number. If you want a set that scales and
+cannot be memorised, that is [`specforge`](https://github.com/nickharris808/specforge).
+
+**"A curated benchmark ages into the training corpus. Isn't this already stale?"**
+Partly, and that is the honest trade. This set is fixed, small, drawn from published standards and
+human-reviewed — which is what makes it citable and what makes its answers leak. `specforge`
+generates tasks whose ground truth is *computed* rather than written down, so it cannot be memorised,
+at the cost of the machines being synthetic. Use this one for a citable number and that one for a
+number you can trust has not leaked.
+
+**"`PROVEN_SAFE` — so the procedure is safe?"**
+No. It means the named property holds over the **modelled** state space. These are models of
+published procedures, not the standards themselves and not implementations. A model abstracts, and an
+abstraction can hide a real defect.
+
+**"What is `CANDIDATE_COUNTEREXAMPLE` doing in an answer key?"**
+Being honest. The property fails on the model and no published citation was found, so it is labelled
+unconfirmed rather than promoted to a finding. It is a real open question, posed publicly — if you
+can cite it, or show the model is wrong, please open an issue.
+
+**"My model got the KRACK task right. Does that mean it can reason about protocols?"**
+Not on its own — that is the exact confound this benchmark exists to expose. Check whether the trace
+replayed. If `valid_counterexamples` is 0 while the verdict was right, the answer was recalled, not
+derived. Then run `--mode spec`, which withholds the transition table.
+
+**"Can I use `bfs` as a baseline to beat?"**
+It is the ceiling, not a competitor: sound and complete over a model that has already been formalised
+for it. The open problem is producing the same verdict *from the spec text*.
+
+**"Something here gave me a confident answer that was wrong."**
+Worth an issue rather than a workaround — please include the input. A scoring bug of exactly that
+kind shipped in 1.0.0 (replay validation was computed and then ignored by the headline metric) and
+carries a public advisory rather than a quiet patch.
+
 ## Performance
 
-Measured: `load_tasks()` takes about **3.5 ms** on the first call, which parses and builds all 15
-models, and about **0.05 ms** on subsequent calls. A full `score()` with replay validation of every
-trace takes about **0.06 ms**. `parse_response` is about **0.2 µs** on a typical reply and **1.3 µs**
-on a 4 kB one — it is linear in the reply length, having been accidentally cubic before that defect
-was fixed. Nothing here is a bottleneck and nothing else has been optimised for speed.
+Measured on an M-series laptop, CPython 3.11. The methodology matters for the microsecond figures:
+each is the **minimum of many trials**, which is what `tests/test_readme_claims.py` asserts, because
+a mean over a noisy scheduler measures the scheduler.
+
+| call | time |
+|---|---|
+| `load_tasks()`, first call (parses and builds all 15 models) | ~2–4 ms |
+| `load_tasks()`, subsequent | ~0.08 ms |
+| `score()` with replay validation of every trace | ~0.08 ms |
+| `parse_response` on a typical 405-character reply | **0.21 µs** |
+| `parse_response` on a 4 kB reply | **1.37 µs** |
+
+The last two are the ones worth reading together: a 10× longer input costs about 6× more, i.e. it is
+linear. It was accidentally **cubic** once, and that is what the ratio is there to catch. Nothing
+else has been optimised for speed and nothing here is a bottleneck.
 
 These are ceilings in the test suite rather than decoration, so a performance regression fails CI.
+The bounds are set at roughly 10× the measured figure, because a CI runner is slower and noisier than
+a laptop and a flaky performance test gets deleted rather than fixed.
 
 ## Tests
 
@@ -337,9 +397,17 @@ These are ceilings in the test suite rather than decoration, so a performance re
 pip install -e ".[test]" && pytest
 ```
 
+```console
+$ pytest -q
+........................................................................ [ 57%]
+.....................................................                    [100%]
+125 passed in 0.70s
+```
+
 125 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
 labels cannot drift away from the shipped models; the rest cover trace-validation failure modes, the
 prompt builders (including that the prompt never leaks the answer), the reply parser, and the CLI.
+One asserts this README's own test count against `pytest --collect-only`, so the badge cannot drift.
 
 ## The portfolio
 
