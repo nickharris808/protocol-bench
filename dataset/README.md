@@ -114,7 +114,8 @@ Scoring — including trace replay — needs the package, because a trace only m
 replayed against the real model:
 
 ```bash
-pip install protocol-bench
+pip install "protocol-bench @ git+https://github.com/nickharris808/protocol-bench.git"
+# `pip install protocol-bench` does not work yet — the package is not on PyPI.
 protocol-bench prompts --mode model -o prompts.json
 # ... run your model, save {task_id: completion} to completions.json ...
 protocol-bench score-completions completions.json

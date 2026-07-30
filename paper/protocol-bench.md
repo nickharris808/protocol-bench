@@ -96,7 +96,8 @@ reachability in the test suite, so labels and models cannot drift apart.
 ## Reproducibility appendix
 
 ```bash
-pip install protocol-bench
+pip install "protocol-bench @ git+https://github.com/nickharris808/protocol-bench.git"
+# `pip install protocol-bench` does not work yet — the package is not on PyPI.
 protocol-bench run bfs              # 1.000 balanced accuracy, 2/2 counterexamples replay
 protocol-bench run always-safe      # 0.500 balanced accuracy, 0.867 plain accuracy
 protocol-bench run always-violated  # 0.500 balanced accuracy, 15 claimed, 0 validated
