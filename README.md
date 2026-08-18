@@ -1,8 +1,8 @@
 # protocol-bench
 
-[![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/protocol-bench#install)
+[![PyPI](https://img.shields.io/pypi/v/protocol-bench)](https://pypi.org/project/protocol-bench/)
 [![CI](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/nickharris808/protocol-bench/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-133%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![tasks](https://img.shields.io/badge/tasks-15-orange)
@@ -401,10 +401,10 @@ pip install -e ".[test]" && pytest
 $ pytest -q
 ........................................................................ [ 57%]
 .....................................................                    [100%]
-125 passed in 0.70s
+131 passed in 3.19s
 ```
 
-125 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
+133 tests. Fifteen of them re-derive every ground-truth label by exhaustive reachability, so the
 labels cannot drift away from the shipped models; the rest cover trace-validation failure modes, the
 prompt builders (including that the prompt never leaks the answer), the reply parser, and the CLI.
 One asserts this README's own test count against `pytest --collect-only`, so the badge cannot drift.

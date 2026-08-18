@@ -20,11 +20,30 @@ from .tasks import Task, load_tasks
 
 
 def bfs_baseline(tasks: Optional[list[Task]] = None) -> dict:
-    """Exhaustive reachability. Sound and complete over the finite model."""
+    """Exhaustive reachability. Sound and complete over the finite model — when it completes.
+
+    LATENT DEFECT FIXED 2026-07-31. This read ``"violated": not res["holds"]``. ``check_safety`` is
+    deliberately THREE-valued: ``holds`` is ``None`` when the search did not complete (state cap hit,
+    or an integer left ``int_bound``). ``not None`` is ``True``, so the reference "sound and complete"
+    baseline silently converted UNDETERMINED into a positive DETECTION CLAIM — the precise
+    undetermined-to-definite promotion that the rest of this package exists to refuse, sitting in the
+    one component every submission is scored against.
+
+    Verified latent rather than active at the time of the fix: all 15 shipped tasks report
+    ``exhaustive=True``, so ``holds`` is never ``None`` today and no published number moves. It would
+    have fired on the first model that outgrew ``max_states`` — i.e. exactly when the benchmark got
+    interesting.
+
+    ``violated`` is now ``None`` when the checker did not decide, so the baseline abstains instead of
+    claiming. ``score()`` already treats a non-True ``violated`` as "no detection asserted", and a
+    trace is only ever emitted alongside a genuine refutation.
+    """
     out = {}
     for t in tasks or load_tasks():
         res = check_safety(t.build())["properties"][t.property]
-        out[t.id] = {"violated": not res["holds"], "trace": res["counterexample"]}
+        holds = res["holds"]
+        violated = None if holds is None else (not holds)
+        out[t.id] = {"violated": violated, "trace": res["counterexample"], "undetermined": holds is None}
     return out
 
 

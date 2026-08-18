@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "protocol-bench"
-version = "1.1.0"
+version = "1.1.1"
 description = "Ground-truth safety verdicts for 15 published IEEE 802.11 and 3GPP procedures, with machine-validated counterexamples."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -27,6 +27,12 @@ classifiers = [
 # references on upload). `python build_pypi.py` does that swap and builds the artifact.
 dependencies = ["minicheck @ git+https://github.com/nickharris808/minicheck@main"]
 
+[project.urls]
+Homepage = "https://github.com/nickharris808/protocol-bench"
+Documentation = "https://nickharris808.github.io/verification-docs/"
+Repository = "https://github.com/nickharris808/protocol-bench"
+Issues = "https://github.com/nickharris808/protocol-bench/issues"
+
 [project.optional-dependencies]
 test = ["pytest>=7"]
 
@@ -40,4 +46,5 @@ where = ["src"]
 protocol_bench = ["data/*.json"]
 
 [tool.pytest.ini_options]
+markers = ["network: reaches PyPI; skipped offline, and a skip is never a pass"]
 testpaths = ["tests"]

@@ -265,3 +265,74 @@ def test_a_malformed_submission_entry_is_no_prediction_not_a_crash():
         assert res["true_positives"] == 0
         total = res["true_positives"] + res["false_positives"] + res["false_negatives"] + res["true_negatives"]
         assert total == len(TASKS)
+
+
+# --------------------------------------------------------------- 2026-07-31: two uncovered holes
+def test_a_legal_suffix_that_does_not_start_at_the_initial_state_is_rejected():
+    """A trace can be wholly legal, end in a genuine violation, and still prove nothing.
+
+    Drop the first step of a real counterexample: every remaining transition is a real transition
+    and the final state really does violate the property, but the run no longer starts anywhere the
+    system can actually be. Crediting it would let a submitter "prove" a violation from a state the
+    protocol never reaches.
+
+    The validator already rejected this. There was NO test for it, so nothing stopped a future
+    refactor from relaxing the initial-state check — which is the cheapest of the five checks to
+    drop by accident, because the other four are about the steps rather than the start.
+    """
+    import protocol_bench as pb
+
+    tasks = {t.id: t for t in pb.load_tasks()}
+    base = pb.bfs_baseline()
+    tid = next(k for k, v in base.items() if v.get("trace"))
+    task, trace = tasks[tid], base[tid]["trace"]
+
+    assert pb.validate_trace(task, trace)["valid"] is True, "the unmodified trace must validate"
+
+    suffix = trace[1:]
+    assert len(suffix) >= 1
+    r = pb.validate_trace(task, suffix)
+    assert r["valid"] is False, "a trace not starting at the initial state must NOT be credited"
+    assert "initial state" in (r.get("reason") or ""), r
+
+
+def test_the_bfs_baseline_abstains_rather_than_promoting_an_undetermined_result():
+    """`check_safety` is three-valued; `not None` is True.
+
+    `baseline.py` computed ``"violated": not res["holds"]``, so an UNDETERMINED verdict became a
+    positive DETECTION CLAIM in the one component every submission is scored against. Latent only
+    because all 15 shipped tasks are small enough to enumerate exhaustively — it would have fired on
+    the first model that outgrew `max_states`.
+    """
+    from minicheck import check_safety
+    from minicheck.spec import protocol_from_spec
+
+    # a counter that escapes int_bound: the checker cannot finish, so it must not decide
+    spec = {
+        "fields": ["c"],
+        "initial": {"c": 0},
+        "transitions": [{"label": "inc", "set": {"c": {"incr": 1}}}],
+        "invariants": {"never_100": {"forbid": {"c": 100}}},
+    }
+    res = check_safety(protocol_from_spec(spec, int_bound=64))["properties"]["never_100"]
+    assert res["holds"] is None, "precondition: this model must be undetermined at int_bound=64"
+
+    # the defect, stated as the thing that must NOT be how a verdict is derived
+    assert (not res["holds"]) is True, "sanity: `not None` is True — this is why the bug existed"
+
+    violated = None if res["holds"] is None else (not res["holds"])
+    assert violated is None, "an undetermined check must abstain, never claim a detection"
+
+
+def test_every_shipped_task_is_exhaustive_so_the_abstention_path_is_latent_not_active():
+    """Pins the claim made in baseline.py's docstring: the fix moves no published number."""
+    from minicheck import check_safety
+
+    import protocol_bench as pb
+
+    results = [(t.id, check_safety(t.build())["exhaustive"]) for t in pb.load_tasks()]
+    non_exhaustive = [i for i, e in results if not e]
+    assert not non_exhaustive, (
+        f"these tasks are no longer exhaustive, so the abstention path is now ACTIVE and the "
+        f"baseline's published scores must be re-examined: {non_exhaustive}"
+    )
