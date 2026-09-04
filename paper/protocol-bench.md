@@ -69,10 +69,24 @@ degenerate system look strong.
 | Exhaustive reachability | 1.000 | 1.000 | 2 | 2 |
 | Constant "safe" | 0.500 | 0.867 | 0 | 0 |
 | Constant "violated" | 0.500 | 0.133 | 15 | 0 |
+| Qwen2.5-1.5B-Instruct (greedy, 1 attempt) | 0.500 | 0.867 | 0 | 0 |
 
 The exhaustive baseline is sound and complete over the finite model and is included as a **ceiling,
 not a competitor**: it operates on a model that has already been formalised. The open problem is
 `spec` mode, where the formalisation step is the work.
+
+The model row is a single measured run, not a survey: `Qwen2.5-1.5B-Instruct` at temperature 0,
+one completion per task, scored once with no re-prompting and no decoding changes, under a bar that
+was written down and hashed before the weights were fetched. It predicted "safe" on all fifteen
+tasks. Its accuracy is not merely close to the constant baseline's — it **is** the constant
+baseline's, 0.867, and its balanced accuracy is 0.500 with zero counterexamples produced and
+therefore zero replayed. Reporting accuracy alone would have described this run as 87% correct.
+
+That is one small open-weights model under one decoding setting. It is not a claim about language
+models in general, not a claim about larger models, and not a claim that this benchmark is hard —
+only that this model did not beat answering "safe" every time, and that the replay requirement gave
+it no credit for a detection it never made. The completions are pinned by sha256
+`4464e707…` so the run can be re-scored with `protocol-bench score-completions`.
 
 The two constant baselines are the reason the metric is shaped as it is. "Constant violated" attains
 perfect recall on the violated class, claims 15 detections, and validates none — a system that

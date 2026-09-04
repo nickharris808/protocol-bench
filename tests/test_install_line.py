@@ -25,7 +25,16 @@ import urllib.error
 import urllib.request
 
 import pytest
-import tomllib
+
+# `tomllib` is stdlib only from 3.11, and every package here declares `requires-python >=3.9`.
+# Importing it unconditionally made this file fail to IMPORT on 3.9 and 3.10, so the whole test
+# session errored on those two interpreters in six repositories at once -- CI red since the day
+# they were published (2026-08-18), for a reason that has nothing to do with any claim this file
+# checks. The fallback keeps the check running everywhere the package claims to run.
+try:  # pragma: no cover - interpreter-dependent
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11
+    import tomli as tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -164,6 +173,7 @@ def test_the_package_reports_the_version_its_metadata_declares():
     module = None
     try:
         import importlib.metadata as _md
+
         tops = (_md.distribution(NAME).read_text("top_level.txt") or "").split()
         for candidate in tops:
             try:

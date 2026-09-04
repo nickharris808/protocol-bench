@@ -137,6 +137,40 @@ package ships and the test suite checks. Nothing in this file is hand-written:
 A further test asserts that **the committed JSONL is byte-equal to what the package generates**, and
 another asserts that **every counterexample in this file replays against its own model**.
 
+## The negative control, which you can run
+
+A benchmark whose labels are 13 safe and 2 violated can be gamed by answering "safe" every time.
+That is not a hypothetical here — it is a shipped baseline, so the floor is measurable rather than
+argued:
+
+```bash
+pip install protocol-bench
+protocol-bench run always-safe
+```
+
+    recall on violated         0.000
+    recall on safe             1.000
+    detections claimed         0
+    valid counterexamples      0
+    TP 0  FP 0  FN 2  TN 13
+
+**0.867 plain accuracy, 0.500 balanced accuracy, and nothing detected.** A submission reporting
+0.867 accuracy has matched a constant. This is why the headline metric is balanced accuracy and why
+a detection is credited only when its counterexample replays.
+
+## Regenerating this file, exactly
+
+```bash
+pip install protocol-bench
+python -c "from protocol_bench.export import export_jsonl; export_jsonl('protocol_bench.jsonl')"
+```
+
+    sha256  a147f0e1871ddb80eadef51023223b85890c45bf2b4040769312532284ddb7a3   protocol_bench.jsonl
+
+Checked on 2026-09-04: the bytes that command writes are identical to the file published here and
+to the copy in the package repository. If your hash differs, the package version differs — say so
+rather than assuming this file drifted.
+
 ## Labels, and one deliberate open question
 
 `KNOWN_COUNTEREXAMPLE` means the violation is published and cited. The single instance is the WPA2
